@@ -31,21 +31,21 @@ class DC310SGUI:
         self.auto_reset_mode = self.load_reset_settings()
         self.presets = self.load_or_create_presets()
 
-        left_frame = ttk.Frame(root)
-        left_frame.grid(row=0, column=0, rowspan=10, padx=5, sticky="ns")
-        right_frame = ttk.Frame(root)
-        right_frame.grid(row=0, column=1, rowspan=10, padx=5, sticky="ns")
+        self.left_frame = tk.Frame(root)  # tk.Frame allows color change
+        self.left_frame.grid(row=0, column=0, rowspan=10, padx=5, sticky="ns")
+        self.right_frame = tk.Frame(root)
+        self.right_frame.grid(row=0, column=1, rowspan=10, padx=5, sticky="ns")
 
-        self.setup_core_controls(left_frame)
-        self.setup_presets_panel(right_frame)
+        self.setup_core_controls(self.left_frame)
+        self.setup_presets_panel(self.right_frame)
+
         self.root.after(1000, self.periodic_refresh)
 
     def load_reset_settings(self):
         if not os.path.exists(RESET_SETTINGS_FILE):
             default = {
                 "timer": "reset on output off",
-                "energy": "reset on output off",
-                "all": "no reset"
+                "energy": "reset on output off"
             }
             with open(RESET_SETTINGS_FILE, "w") as f:
                 json.dump(default, f, indent=2)
@@ -58,12 +58,12 @@ class DC310SGUI:
             json.dump(self.auto_reset_mode, f, indent=2)
 
     def setup_core_controls(self, frame):
-        ttk.Label(frame, text="Select COM Port:").grid(row=0, column=0, sticky="w")
+        tk.Label(frame, text="Select COM Port:").grid(row=0, column=0, sticky="w")
         self.combobox = ttk.Combobox(frame, values=self.list_serial_ports(), state="readonly")
         self.combobox.grid(row=0, column=1)
         self.combobox.set(self.get_highest_com_port())
-        ttk.Button(frame, text="Connect", command=self.connect).grid(row=0, column=2)
-        ttk.Button(frame, text="Disconnect", command=self.disconnect).grid(row=0, column=3)
+        tk.Button(frame, text="Connect", command=self.connect).grid(row=0, column=2)
+        tk.Button(frame, text="Disconnect", command=self.disconnect).grid(row=0, column=3)
         self.status_indicator = tk.Label(frame, text="●", fg="red", font=("Arial", 14))
         self.status_indicator.grid(row=0, column=4)
 
@@ -72,15 +72,15 @@ class DC310SGUI:
         self.off_button = tk.Button(frame, text="Output OFF", bg="lightblue", command=lambda: self.set_output(0), state='disabled')
         self.off_button.grid(row=1, column=1, pady=5)
 
-        ttk.Label(frame, text="Set Voltage (V):").grid(row=2, column=0, sticky="w")
-        self.voltage_entry = ttk.Entry(frame)
+        tk.Label(frame, text="Set Voltage (V):").grid(row=2, column=0, sticky="w")
+        self.voltage_entry = tk.Entry(frame)
         self.voltage_entry.grid(row=2, column=1)
-        ttk.Button(frame, text="Set", command=self.set_voltage).grid(row=2, column=2)
+        tk.Button(frame, text="Set", command=self.set_voltage).grid(row=2, column=2)
 
-        ttk.Label(frame, text="Set Current (A):").grid(row=3, column=0, sticky="w")
-        self.current_entry = ttk.Entry(frame)
+        tk.Label(frame, text="Set Current (A):").grid(row=3, column=0, sticky="w")
+        self.current_entry = tk.Entry(frame)
         self.current_entry.grid(row=3, column=1)
-        ttk.Button(frame, text="Set", command=self.set_current).grid(row=3, column=2)
+        tk.Button(frame, text="Set", command=self.set_current).grid(row=3, column=2)
 
         tk.Label(frame, text="Voltage (V):").grid(row=4, column=0, sticky="w")
         self.meas_voltage = tk.Label(frame, text="---", font=("Arial", 24, "bold"), fg="blue", width=10)
@@ -111,9 +111,8 @@ class DC310SGUI:
         self.ax_current.set_xlim(0, 100)
         self.ax_current.set_title("Current")
         self.ax_current.grid(True)
-
     def setup_presets_panel(self, frame):
-        ttk.Label(frame, text="Presets").pack()
+        tk.Label(frame, text="Presets").pack()
         self.preset_listbox = tk.Listbox(frame, height=10, width=35)
         self.preset_listbox.pack(pady=5)
 
@@ -137,14 +136,14 @@ class DC310SGUI:
         self.energy_label = tk.Label(frame, text="Energy: 0.00 Wh / 0.00 J", font=("Arial", 24, "bold"), fg="brown")
         self.energy_label.pack(pady=5)
 
-        reset_frame = ttk.Frame(frame)
+        reset_frame = tk.Frame(frame)
         reset_frame.pack(pady=2, fill="x")
 
         tk.Button(reset_frame, text="Reset Timer", font=("Arial", 12), command=self.reset_timer).grid(row=0, column=0, sticky="ew")
         tk.Button(reset_frame, text="Reset Energy", font=("Arial", 12), command=self.reset_energy).grid(row=0, column=1, sticky="ew")
         tk.Button(reset_frame, text="Reset All", font=("Arial", 12), command=self.reset_all).grid(row=0, column=2, sticky="ew")
 
-        for idx, key in enumerate(["timer", "energy", "all"]):
+        for idx, key in enumerate(["timer", "energy"]):
             cb = ttk.Combobox(reset_frame, values=[
                 "reset on output on", "reset on output off", "no reset"
             ], state="readonly", width=20)
@@ -281,11 +280,9 @@ class DC310SGUI:
         if state:
             self.elapsed_seconds += 1
             self.energy_ws += self.output_power
-            if self.auto_reset_mode["all"] == "reset on output on": self.reset_all()
             if self.auto_reset_mode["timer"] == "reset on output on": self.reset_timer()
             if self.auto_reset_mode["energy"] == "reset on output on": self.reset_energy()
         else:
-            if self.auto_reset_mode["all"] == "reset on output off": self.reset_all()
             if self.auto_reset_mode["timer"] == "reset on output off": self.reset_timer()
             if self.auto_reset_mode["energy"] == "reset on output off": self.reset_energy()
 
@@ -294,16 +291,31 @@ class DC310SGUI:
         s = self.elapsed_seconds % 60
         self.timer_label.config(text=f"Time: {h:02}:{m:02}:{s:02}")
         self.energy_label.config(text=f"Energy: {self.energy_ws / 3600:.2f} Wh / {self.energy_ws:.2f} J")
-        self.root.configure(bg="light green" if state else "light gray")
+
+        bg = "light green" if state else "light gray"
+        self.root.configure(bg=bg)
+        self.left_frame.configure(bg=bg)
+        self.right_frame.configure(bg=bg)
+        for widget in self.left_frame.winfo_children():
+            try:
+                widget.configure(bg=bg)
+            except tk.TclError:
+                pass  # Skip widgets like ttk.Combobox that don't support bg
+
         self.update_plots()
 
     def update_plots(self):
         self.line_voltage.set_data(range(len(self.voltage_history)), list(self.voltage_history))
         self.ax_voltage.set_xlim(0, max(100, len(self.voltage_history)))
-        self.ax_voltage.relim(); self.ax_voltage.autoscale_view(True, True, False); self.canvas_voltage.draw()
+        self.ax_voltage.relim()
+        self.ax_voltage.autoscale_view(True, True, False)
+        self.canvas_voltage.draw()
+
         self.line_current.set_data(range(len(self.current_history)), list(self.current_history))
         self.ax_current.set_xlim(0, max(100, len(self.current_history)))
-        self.ax_current.relim(); self.ax_current.autoscale_view(True, True, False); self.canvas_current.draw()
+        self.ax_current.relim()
+        self.ax_current.autoscale_view(True, True, False)
+        self.canvas_current.draw()
 
     def periodic_refresh(self):
         if self.serial_conn and self.serial_conn.is_open:
