@@ -1,0 +1,5 @@
+{
+  "timer": "reset on output off",
+  "energy": "reset on output off",
+  "all": "no reset"
+}
