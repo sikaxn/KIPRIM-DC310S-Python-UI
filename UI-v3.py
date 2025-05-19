@@ -21,7 +21,12 @@ class DC310SGUI:
         self.voltage_history = deque(maxlen=100)
         self.current_history = deque(maxlen=100)
         self.output_voltage = 0.0
+        self.output_power = 0.0
         self.preset_click_stage = 0
+
+        # Timer/energy
+        self.elapsed_seconds = 0
+        self.energy_ws = 0.0
 
         self.presets = self.load_or_create_presets()
 
@@ -105,6 +110,31 @@ class DC310SGUI:
         self.save_preset_button = tk.Button(frame, text="Save Current Setting",
                                             command=self.save_current_as_preset)
         self.save_preset_button.pack(pady=5, fill="x")
+
+        self.timer_label = tk.Label(frame, text="Time: 00:00:00", font=("Arial", 24, "bold"), fg="purple")
+        self.timer_label.pack(pady=5)
+
+        self.energy_label = tk.Label(frame, text="Energy: 0.00 Wh / 0.00 J", font=("Arial", 24, "bold"), fg="brown")
+        self.energy_label.pack(pady=5)
+
+        self.reset_timer_button = tk.Button(frame, text="Reset Timer", command=self.reset_timer)
+        self.reset_timer_button.pack(pady=2, fill="x")
+
+        self.reset_energy_button = tk.Button(frame, text="Reset Energy", command=self.reset_energy)
+        self.reset_energy_button.pack(pady=2, fill="x")
+
+        self.reset_all_button = tk.Button(frame, text="Reset All", command=self.reset_all)
+        self.reset_all_button.pack(pady=2, fill="x")
+
+    def reset_timer(self):
+        self.elapsed_seconds = 0
+
+    def reset_energy(self):
+        self.energy_ws = 0.0
+
+    def reset_all(self):
+        self.reset_timer()
+        self.reset_energy()
 
     def load_or_create_presets(self):
         if not os.path.exists(PRESET_FILE):
@@ -240,10 +270,27 @@ class DC310SGUI:
         except:
             self.meas_current.config(text="---")
             self.current_history.append(0)
+
+        power = self.output_voltage * i if v_str and i_str else 0
+        self.output_power = power
         try:
-            self.meas_power.config(text=f"{v * i:.2f}")
+            self.meas_power.config(text=f"{power:.2f}")
         except:
             self.meas_power.config(text="---")
+
+        if self.get_output_state():
+            self.elapsed_seconds += 1
+            self.energy_ws += self.output_power
+
+        h = self.elapsed_seconds // 3600
+        m = (self.elapsed_seconds % 3600) // 60
+        s = self.elapsed_seconds % 60
+        self.timer_label.config(text=f"Time: {h:02}:{m:02}:{s:02}")
+        self.energy_label.config(text=f"Energy: {self.energy_ws / 3600:.2f} Wh / {self.energy_ws:.2f} J")
+
+        if not self.get_output_state():
+            self.reset_all()
+
         self.update_plots()
 
     def update_plots(self):
