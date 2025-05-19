@@ -297,10 +297,12 @@ class DC310SGUI:
         self.left_frame.configure(bg=bg)
         self.right_frame.configure(bg=bg)
         for widget in self.left_frame.winfo_children():
-            try:
-                widget.configure(bg=bg)
-            except tk.TclError:
-                pass  # Skip widgets like ttk.Combobox that don't support bg
+        # Apply background only to Labels and Entries, not Buttons or ttk widgets
+            if isinstance(widget, (tk.Label, tk.Entry)):
+                try:
+                    widget.configure(bg=bg)
+                except tk.TclError:
+                    pass
 
         self.update_plots()
 
