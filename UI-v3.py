@@ -24,13 +24,11 @@ class DC310SGUI:
         self.output_power = 0.0
         self.preset_click_stage = 0
 
-        # Timer/energy
         self.elapsed_seconds = 0
         self.energy_ws = 0.0
 
         self.presets = self.load_or_create_presets()
 
-        # Layout Frames
         left_frame = ttk.Frame(root)
         left_frame.grid(row=0, column=0, rowspan=10, padx=5, sticky="ns")
         right_frame = ttk.Frame(root)
@@ -98,17 +96,19 @@ class DC310SGUI:
 
     def setup_presets_panel(self, frame):
         ttk.Label(frame, text="Presets").pack()
-        self.preset_listbox = tk.Listbox(frame, height=10, width=25)
+        self.preset_listbox = tk.Listbox(frame, height=10, width=35)
         self.preset_listbox.pack(pady=5)
-        for name in self.presets:
-            self.preset_listbox.insert(tk.END, name)
 
-        self.load_preset_button = tk.Button(frame, text="LOAD", font=("Arial", 14, "bold"),
-                                            bg="lightblue", command=self.load_selected_preset)
+        self.preset_display_map = {}
+        for name, data in self.presets.items():
+            display = f"{name} ({data['voltage']}V, {data['current']}A)"
+            self.preset_display_map[display] = name
+            self.preset_listbox.insert(tk.END, display)
+
+        self.load_preset_button = tk.Button(frame, text="LOAD", font=("Arial", 14, "bold"), bg="lightblue", command=self.load_selected_preset)
         self.load_preset_button.pack(pady=10, fill="x")
 
-        self.save_preset_button = tk.Button(frame, text="Save Current Setting",
-                                            command=self.save_current_as_preset)
+        self.save_preset_button = tk.Button(frame, text="Save Current Setting", command=self.save_current_as_preset)
         self.save_preset_button.pack(pady=5, fill="x")
 
         self.timer_label = tk.Label(frame, text="Time: 00:00:00", font=("Arial", 24, "bold"), fg="purple")
@@ -160,7 +160,9 @@ class DC310SGUI:
             voltage = float(self.voltage_entry.get())
             current = float(self.current_entry.get())
             self.presets[name] = {"voltage": voltage, "current": current}
-            self.preset_listbox.insert(tk.END, name)
+            display = f"{name} ({voltage}V, {current}A)"
+            self.preset_display_map[display] = name
+            self.preset_listbox.insert(tk.END, display)
             self.save_presets()
         except ValueError:
             pass
@@ -232,7 +234,8 @@ class DC310SGUI:
         sel = self.preset_listbox.curselection()
         if not sel:
             return
-        name = self.preset_listbox.get(sel[0])
+        display = self.preset_listbox.get(sel[0])
+        name = self.preset_display_map.get(display, "")
         preset = self.presets.get(name)
         if not preset:
             return
